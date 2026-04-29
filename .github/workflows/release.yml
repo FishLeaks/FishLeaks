@@ -58,7 +58,7 @@ jobs:
           COMMIT="${{ github.sha }}"
           BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-          ARTIFACT="${{ env.BINARY_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}"
+          BIN_NAME="${{ env.BINARY_NAME }}${{ matrix.ext }}"
 
           go build \
             -trimpath \
@@ -66,10 +66,18 @@ jobs:
               -X main.version=${VERSION} \
               -X main.commit=${COMMIT} \
               -X main.buildDate=${BUILD_DATE}" \
-            -o "${ARTIFACT}" \
+            -o "${BIN_NAME}" \
             .
 
-          echo "ARTIFACT=${ARTIFACT}" >> "$GITHUB_ENV"
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            ARCHIVE="${{ env.BINARY_NAME }}-${{ matrix.os }}-${{ matrix.arch }}.zip"
+            zip "${ARCHIVE}" "${BIN_NAME}"
+          else
+            ARCHIVE="${{ env.BINARY_NAME }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+            tar -czvf "${ARCHIVE}" "${BIN_NAME}"
+          fi
+
+          echo "ARTIFACT=${ARCHIVE}" >> "$GITHUB_ENV"
 
       - name: Generate SHA-256 checksum
         run: sha256sum "${{ env.ARTIFACT }}" > "${{ env.ARTIFACT }}.sha256"
