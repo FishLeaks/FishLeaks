@@ -10,14 +10,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	version = "dev"
+)
+
 func main() {
 	var dir string
 	var secretDisplay, redact bool
 
 	rootCmd := &cobra.Command{
-		Use:   "fishleaks",
-		Short: "FishLeaks – scan a directory for leaked secrets",
-		Long:  "FishLeaks runs GitLeaks and TruffleHog against a target directory and prints de-duplicated findings.",
+		Use:     "fishleaks",
+		Short:   "FishLeaks – scan a directory for leaked secrets",
+		Long:    "FishLeaks runs GitLeaks and TruffleHog against a target directory and prints de-duplicated findings.",
+		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			fmt.Println("___________.__       .__    .____                  __            ")
