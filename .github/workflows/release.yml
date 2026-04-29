@@ -1,0 +1,82 @@
+name: Release Build
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: write   # Required to upload release assets
+
+env:
+  BINARY_NAME: FishLeaks
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}/${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── Linux ──────────────────────────────────────────────────────────
+          - { os: linux,   arch: amd64,   ext: ""    }
+          - { os: linux,   arch: arm64,   ext: ""    }
+          - { os: linux,   arch: arm,     ext: ""    }
+          - { os: linux,   arch: 386,     ext: ""    }
+
+          # ── macOS ──────────────────────────────────────────────────────────
+          - { os: darwin,  arch: amd64,   ext: ""    }
+          - { os: darwin,  arch: arm64,   ext: ""    }   # Apple Silicon
+
+          # ── Windows ────────────────────────────────────────────────────────
+          - { os: windows, arch: amd64,   ext: ".exe" }
+          - { os: windows, arch: arm64,   ext: ".exe" }
+          - { os: windows, arch: 386,     ext: ".exe" }
+
+          # ── FreeBSD ────────────────────────────────────────────────────────
+          - { os: freebsd, arch: amd64,   ext: ""    }
+          - { os: freebsd, arch: arm64,   ext: ""    }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        env:
+          GOOS:        ${{ matrix.os }}
+          GOARCH:      ${{ matrix.arch }}
+          CGO_ENABLED: "0"
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          COMMIT="${{ github.sha }}"
+          BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          ARTIFACT="${{ env.BINARY_NAME }}-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}"
+
+          go build \
+            -trimpath \
+            -ldflags="-s -w \
+              -X main.version=${VERSION} \
+              -X main.commit=${COMMIT} \
+              -X main.buildDate=${BUILD_DATE}" \
+            -o "${ARTIFACT}" \
+            .
+
+          echo "ARTIFACT=${ARTIFACT}" >> "$GITHUB_ENV"
+
+      - name: Generate SHA-256 checksum
+        run: sha256sum "${{ env.ARTIFACT }}" > "${{ env.ARTIFACT }}.sha256"
+
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ARTIFACT }}
+            ${{ env.ARTIFACT }}.sha256
