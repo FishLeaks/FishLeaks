@@ -1,34 +1,27 @@
-name: Go Lint
+name: Lint
 
 on:
-  push:
-    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
 jobs:
-  golangci-lint:
-    name: golangci-lint
+  golangci:
+    name: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-          cache: false  # golangci-lint manages its own cache
-
+          go-version: '1.25'
+          cache: true
+      
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: >-
-            --timeout=5m
-            --out-format=colored-line-number
+        run: golangci-lint run --timeout=5m

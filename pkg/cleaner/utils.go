@@ -24,8 +24,14 @@ func sedSubstitute(filename, oldText, newText string) error {
 
     // Cleanup temp file on failure
     defer func() {
-        tmpFile.Close()
-        os.Remove(tmpName) // no-op if rename succeeded
+        err := tmpFile.Close()
+        if err != nil {
+			fmt.Printf("failed to close temp file %s: %v\n", tmpName, err)
+		}
+        err = os.Remove(tmpName) 
+		if err != nil {
+			fmt.Printf("failed to remove temp file %s: %v\n", tmpName, err)
+		}
     }()
 
     // Copy original file permissions
